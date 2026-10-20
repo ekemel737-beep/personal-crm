@@ -1,21 +1,15 @@
-import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { ContactForm } from "@/components/contact-form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Container } from "@/components/container";
 
 export default function NewContactPage() {
   return (
-    <div className="space-y-4">
-      <Link href="/" className="inline-block text-sm text-muted-foreground hover:text-foreground">
-        ← Все контакты
-      </Link>
-      <Card className="max-w-lg">
-        <CardHeader>
-          <CardTitle className="text-xl">Новый контакт</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ContactForm />
-        </CardContent>
-      </Card>
-    </div>
+    <Container className="flex flex-col gap-8 pt-10 pb-16 lg:gap-12 lg:pt-16 lg:pb-24">
+      <div className="flex flex-col gap-4 lg:gap-6">
+        <BackLink />
+        <h1 className="font-display text-title font-bold">Новый контакт</h1>
+      </div>
+      <ContactForm />
+    </Container>
   );
 }
