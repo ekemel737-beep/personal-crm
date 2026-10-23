@@ -1,0 +1,13 @@
+# Keep the build context to what the image needs; secrets never enter it
+.env*
+.git
+.github
+.claude
+.next
+node_modules
+deploy
+e2e
+test-results
+playwright-report
+blob-report
+*.tsbuildinfo
