@@ -1,5 +1,5 @@
 import "server-only";
-import { asc, desc, eq, ilike } from "drizzle-orm";
+import { asc, desc, eq, ilike, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { contacts, notes, type NewContact } from "@/db/schema";
 
@@ -36,4 +36,9 @@ export async function createContact(data: NewContact) {
 
 export async function createNote(contactId: string, body: string) {
   await db.insert(notes).values({ contactId, body });
+}
+
+// One statement, so either all contacts go or none. Their notes go too: the foreign key cascades.
+export async function deleteContacts(ids: string[]) {
+  await db.delete(contacts).where(inArray(contacts.id, ids));
 }

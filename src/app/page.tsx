@@ -2,6 +2,7 @@ import Form from "next/form";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { ContactRows, DeleteModeBar, DeleteModeProvider } from "@/components/contact-delete-mode";
 import { Container } from "@/components/container";
 import { ArrowIcon, SearchIcon } from "@/components/icons";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -19,9 +20,11 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
           <ArrowIcon className="lg:size-6" />
         </Link>
       </div>
-      <Suspense fallback={<p className="text-body text-ink-soft">Загружаю контакты…</p>}>
-        <ContactList searchParams={searchParams} />
-      </Suspense>
+      <DeleteModeProvider>
+        <Suspense fallback={<p className="text-body text-ink-soft">Загружаю контакты…</p>}>
+          <ContactList searchParams={searchParams} />
+        </Suspense>
+      </DeleteModeProvider>
     </Container>
   );
 }
@@ -62,30 +65,16 @@ async function ContactList({ searchParams }: Pick<PageProps<"/">, "searchParams"
         {pluralize(contacts.length, { one: "контакт", few: "контакта", many: "контактов" })}
       </p>
 
-      {contacts.length === 0 ? (
-        <p className="bg-sand px-6 py-12 text-center text-body lg:col-span-9 lg:col-start-4">
-          {query ? `Никого не нашлось по запросу «${query}».` : "Контактов пока нет. Добавьте первый."}
-        </p>
-      ) : (
-        <ul className="border-t-strong lg:col-span-9 lg:col-start-4">
-          {contacts.map((contact) => (
-            <li key={contact.id} className="border-b">
-              <Link
-                href={`/contacts/${contact.id}`}
-                className="flex flex-col gap-1 px-3 py-4 transition-colors hover:bg-sand focus-visible:-outline-offset-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6 lg:px-4 lg:py-5"
-              >
-                <span className="min-w-0">
-                  <span className="block text-name font-semibold">{contact.name}</span>
-                  {contact.howWeMet && (
-                    <span className="block truncate text-meta text-ink-soft">{contact.howWeMet}</span>
-                  )}
-                </span>
-                {contact.phone && <span className="shrink-0 text-meta tabular-nums">{contact.phone}</span>}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="flex flex-col gap-4 lg:col-span-9 lg:col-start-4">
+        <DeleteModeBar hasContacts={contacts.length > 0} />
+        {contacts.length === 0 ? (
+          <p className="bg-sand px-6 py-12 text-center text-body">
+            {query ? `Никого не нашлось по запросу «${query}».` : "Контактов пока нет. Добавьте первый."}
+          </p>
+        ) : (
+          <ContactRows contacts={contacts} />
+        )}
+      </div>
     </div>
   );
 }
