@@ -3,7 +3,14 @@
 import { refresh, revalidatePath } from "next/cache";
 import { redirect, RedirectType } from "next/navigation";
 import { z } from "zod";
-import { createContact, createNote, deleteContacts, getContact } from "@/lib/contacts";
+import {
+  createContact,
+  createNote,
+  deleteContacts,
+  getContact,
+  setKeepInTouchFrequency,
+} from "@/lib/contacts";
+import { keepInTouchFrequencies } from "@/lib/keep-in-touch";
 
 const optionalText = (max: number, message: string) =>
   z
@@ -74,7 +81,27 @@ export async function addNoteAction(_prev: NoteFormState, formData: FormData): P
   if (!contact) return { error: "Контакт не найден", body };
 
   await createNote(contact.id, parsed.data.body);
+  // A note restarts the keep-in-touch countdown, so the home page changes too
+  revalidatePath("/");
   refresh();
+  return {};
+}
+
+const frequencySchema = z.object({
+  contactId: z.uuid("Контакт не найден"),
+  frequency: z.union([z.enum(keepInTouchFrequencies), z.literal("")]),
+});
+
+export type FrequencyState = { error?: string };
+
+export async function setKeepInTouchFrequencyAction(contactId: string, frequency: string): Promise<FrequencyState> {
+  const parsed = frequencySchema.safeParse({ contactId, frequency });
+  if (!parsed.success) return { error: "Не удалось сохранить частоту" };
+
+  const found = await setKeepInTouchFrequency(parsed.data.contactId, parsed.data.frequency || null);
+  if (!found) return { error: "Контакт не найден" };
+
+  revalidatePath("/");
   return {};
 }
 

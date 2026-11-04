@@ -1,0 +1,2 @@
+CREATE TYPE "public"."keep_in_touch_frequency" AS ENUM('week', 'month', 'quarter', 'year');--> statement-breakpoint
+ALTER TABLE "contacts" ADD COLUMN "keep_in_touch_frequency" "keep_in_touch_frequency";

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { BackLink } from "@/components/back-link";
 import { Container } from "@/components/container";
 import { DeleteContactButton } from "@/components/delete-contact-button";
+import { KeepInTouchSelect } from "@/components/keep-in-touch-select";
 import { NoteForm } from "@/components/note-form";
 import { getContact, listNotes } from "@/lib/contacts";
 import { formatDateTime, pluralize } from "@/lib/format";
@@ -55,6 +56,9 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
                 {contact.email}
               </a>
             )}
+          </Field>
+          <Field label="Как часто общаться">
+            <KeepInTouchSelect contactId={contact.id} initialValue={contact.keepInTouchFrequency} />
           </Field>
         </dl>
         <DeleteContactButton contactId={contact.id} contactName={contact.name} />

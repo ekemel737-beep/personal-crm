@@ -6,8 +6,9 @@ import { ContactRows, DeleteModeBar, DeleteModeProvider } from "@/components/con
 import { Container } from "@/components/container";
 import { ArrowIcon, SearchIcon } from "@/components/icons";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { KeepInTouchBlock } from "@/components/keep-in-touch-block";
 import { Input } from "@/components/ui/input";
-import { listContacts } from "@/lib/contacts";
+import { countContacts, countWithoutFrequency, listContacts, listOverdueContacts } from "@/lib/contacts";
 import { pluralize } from "@/lib/format";
 
 export default function HomePage({ searchParams }: PageProps<"/">) {
@@ -31,11 +32,47 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
 
 async function ContactList({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   await connection();
-  const { q } = await searchParams;
+  const { q, nofreq } = await searchParams;
   const query = typeof q === "string" ? q.trim() : "";
-  const contacts = await listContacts(query);
 
-  // Desktop: the count is a caption in the left 3 columns, search and list on the right
+  // "Могут быть забытыми" is about the plain list: a search shows neither the count nor the filter
+  const [total, withoutFrequency] = query ? [null, null] : await Promise.all([countContacts(), countWithoutFrequency()]);
+  // With nobody left without a frequency, an old ?nofreq=1 link shows the whole list, not an empty one
+  const filtered = !query && nofreq === "1" && (withoutFrequency ?? 0) > 0;
+
+  // The "Пора связаться" block belongs to the plain list: no search, no filter, no block
+  const [contacts, overdue] = await Promise.all([
+    listContacts(query, { withoutFrequency: filtered }),
+    query || filtered ? [] : listOverdueContacts(),
+  ]);
+
+  return (
+    <>
+      <KeepInTouchBlock contacts={overdue} />
+      <ContactListBody
+        query={query}
+        contacts={contacts}
+        total={total ?? contacts.length}
+        withoutFrequency={withoutFrequency}
+        filtered={filtered}
+      />
+    </>
+  );
+}
+
+function ContactListBody({
+  query,
+  contacts,
+  total,
+  withoutFrequency,
+  filtered,
+}: {
+  query: string;
+  contacts: Awaited<ReturnType<typeof listContacts>>;
+  total: number;
+  withoutFrequency: number | null;
+  filtered: boolean;
+}) {
   return (
     <div className="flex flex-col gap-6 border-t-strong pt-6 lg:grid lg:grid-cols-12 lg:gap-x-8 lg:gap-y-8 lg:pt-8">
       <Form action="/" className="flex flex-wrap gap-2 lg:col-span-9 lg:col-start-4 lg:gap-3" role="search">
@@ -53,17 +90,30 @@ async function ContactList({ searchParams }: Pick<PageProps<"/">, "searchParams"
         <Button type="submit" variant="outline" className="lg:h-13">
           Найти
         </Button>
-        {query && (
+        {(query || filtered) && (
           <Link href="/" className={buttonVariants({ variant: "ghost", className: "lg:h-13" })}>
             Сбросить
           </Link>
         )}
       </Form>
 
-      <p className="font-display text-label font-medium lg:col-span-3 lg:row-start-1 lg:pt-4">
-        {query ? "Найдено: " : "Всего: "}
-        {pluralize(contacts.length, { one: "контакт", few: "контакта", many: "контактов" })}
-      </p>
+      {/* Desktop: the counts are a caption in the left 3 columns, search and list on the right */}
+      <div className="flex flex-col gap-2 font-display text-label font-medium lg:col-span-3 lg:row-start-1 lg:pt-4">
+        <p>
+          {query ? "Найдено: " : "Всего: "}
+          {pluralize(query ? contacts.length : total, { one: "контакт", few: "контакта", many: "контактов" })}
+        </p>
+        {withoutFrequency === 0 && <p>Никто не будет забыт</p>}
+        {withoutFrequency !== null && withoutFrequency > 0 && (
+          <Link
+            href={filtered ? "/" : "/?nofreq=1"}
+            aria-current={filtered ? "true" : undefined}
+            className="self-start underline underline-offset-4 decoration-(length:--border-width-strong) aria-[current=true]:bg-ink aria-[current=true]:px-2 aria-[current=true]:text-paper aria-[current=true]:no-underline"
+          >
+            Могут быть забытыми: {withoutFrequency}
+          </Link>
+        )}
+      </div>
 
       <div className="flex flex-col gap-4 lg:col-span-9 lg:col-start-4">
         <DeleteModeBar hasContacts={contacts.length > 0} />
