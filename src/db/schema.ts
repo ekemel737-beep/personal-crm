@@ -1,4 +1,7 @@
-import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { keepInTouchFrequencies } from "../lib/keep-in-touch";
+
+export const keepInTouchFrequency = pgEnum("keep_in_touch_frequency", keepInTouchFrequencies);
 
 export const contacts = pgTable(
   "contacts",
@@ -8,6 +11,8 @@ export const contacts = pgTable(
     howWeMet: text("how_we_met"),
     phone: text("phone"),
     email: text("email"),
+    // NULL means "not set": such a contact is never overdue
+    keepInTouchFrequency: keepInTouchFrequency("keep_in_touch_frequency"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("contacts_name_idx").on(table.name)],

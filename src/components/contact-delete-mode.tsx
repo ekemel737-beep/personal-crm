@@ -20,7 +20,7 @@ type DeleteMode = {
 
 const DeleteModeContext = createContext<DeleteMode | null>(null);
 
-function useDeleteMode() {
+export function useDeleteMode() {
   const deleteMode = useContext(DeleteModeContext);
   if (!deleteMode) throw new Error("useDeleteMode must be used inside DeleteModeProvider");
   return deleteMode;
@@ -102,7 +102,7 @@ export function ContactRows({ contacts }: { contacts: ContactRowData[] }) {
   const { active, selectedIds, toggle } = useDeleteMode();
 
   return (
-    <ul className="border-t-strong">
+    <ul aria-label="Все контакты" className="border-t-strong">
       {contacts.map((contact) => (
         <li key={contact.id} className="border-b">
           <ContactRow
