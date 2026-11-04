@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { BackLink } from "@/components/back-link";
 import { Container } from "@/components/container";
+import { DeleteContactButton } from "@/components/delete-contact-button";
 import { NoteForm } from "@/components/note-form";
 import { getContact, listNotes } from "@/lib/contacts";
 import { formatDateTime, pluralize } from "@/lib/format";
@@ -56,6 +57,7 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
             )}
           </Field>
         </dl>
+        <DeleteContactButton contactId={contact.id} contactName={contact.name} />
       </Container>
 
       {/* Notes sit on a sand band, like the "Знакомо?" block on the landing */}

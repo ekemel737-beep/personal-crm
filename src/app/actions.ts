@@ -1,9 +1,9 @@
 "use server";
 
-import { refresh } from "next/cache";
-import { redirect } from "next/navigation";
+import { refresh, revalidatePath } from "next/cache";
+import { redirect, RedirectType } from "next/navigation";
 import { z } from "zod";
-import { createContact, createNote, getContact } from "@/lib/contacts";
+import { createContact, createNote, deleteContacts, getContact } from "@/lib/contacts";
 
 const optionalText = (max: number, message: string) =>
   z
@@ -76,4 +76,22 @@ export async function addNoteAction(_prev: NoteFormState, formData: FormData): P
   await createNote(contact.id, parsed.data.body);
   refresh();
   return {};
+}
+
+export async function deleteContactAction(formData: FormData) {
+  const parsed = z.uuid().safeParse(formData.get("contactId"));
+  if (parsed.success) {
+    await deleteContacts([parsed.data]);
+    revalidatePath("/");
+  }
+  // Replace, so the browser's back button doesn't lead to the deleted card.
+  redirect("/", RedirectType.replace);
+}
+
+export async function deleteContactsAction(formData: FormData) {
+  const parsed = z.array(z.uuid()).min(1).safeParse(formData.getAll("contactIds"));
+  if (!parsed.success) return;
+
+  await deleteContacts(parsed.data);
+  revalidatePath("/");
 }
