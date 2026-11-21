@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
-import { createContactAction, type ContactFormState } from "@/app/actions";
+import type { ContactFormState } from "@/lib/contact-schema";
+import type { ContactField } from "@/lib/contact-fields";
 import { ArrowIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -14,9 +16,18 @@ const FIELDS = [
   { name: "email", label: "Почта", type: "email", placeholder: "ivan@example.com" },
 ] as const;
 
+type ContactFormProps = {
+  action: (prev: ContactFormState, formData: FormData) => Promise<ContactFormState>;
+  /** Current values when editing; the new-contact form starts empty. */
+  initialValues?: Partial<Record<ContactField, string>>;
+  submitLabel?: string;
+  /** Where "Отмена" leads; no cancel link when omitted. */
+  cancelHref?: string;
+};
+
 // Desktop: a sheet of rows, label in the left 3 columns and the field next to it
-export function ContactForm() {
-  const [state, formAction, pending] = useActionState<ContactFormState, FormData>(createContactAction, {});
+export function ContactForm({ action, initialValues, submitLabel = "Сохранить", cancelHref }: ContactFormProps) {
+  const [state, formAction, pending] = useActionState<ContactFormState, FormData>(action, {});
 
   return (
     <form action={formAction} className="flex flex-col border-t-strong lg:grid lg:grid-cols-12 lg:gap-x-8" noValidate>
@@ -38,7 +49,7 @@ export function ContactForm() {
                 name={field.name}
                 type={field.type}
                 placeholder={field.placeholder}
-                defaultValue={state.values?.[field.name]}
+                defaultValue={state.values?.[field.name] ?? initialValues?.[field.name]}
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? `${id}-error` : undefined}
                 autoFocus={field.name === "name"}
@@ -52,11 +63,23 @@ export function ContactForm() {
           </div>
         );
       })}
-      <div className="pt-8 lg:col-span-6 lg:col-start-4">
-        <Button type="submit" size="lg" disabled={pending} className="w-full sm:w-auto">
-          {pending ? "Сохраняю…" : "Сохранить"}
-          <ArrowIcon className="lg:size-6" />
-        </Button>
+      <div className="flex flex-col gap-4 pt-8 lg:col-span-6 lg:col-start-4">
+        {state.error && (
+          <p role="alert" className="text-meta font-medium">
+            {state.error}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-3">
+          <Button type="submit" size="lg" disabled={pending} className="w-full sm:w-auto">
+            {pending ? "Сохраняю…" : submitLabel}
+            <ArrowIcon className="lg:size-6" />
+          </Button>
+          {cancelHref && (
+            <Link href={cancelHref} className={buttonVariants({ variant: "ghost", size: "lg" })}>
+              Отмена
+            </Link>
+          )}
+        </div>
       </div>
     </form>
   );

@@ -1,3 +1,4 @@
+import { createContactAction } from "@/app/actions";
 import { BackLink } from "@/components/back-link";
 import { ContactForm } from "@/components/contact-form";
 import { Container } from "@/components/container";
@@ -9,7 +10,7 @@ export default function NewContactPage() {
         <BackLink />
         <h1 className="font-display text-title font-bold">Новый контакт</h1>
       </div>
-      <ContactForm />
+      <ContactForm action={createContactAction} />
     </Container>
   );
 }
