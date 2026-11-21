@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  experimental: {
+    // Policy for `next upgrade --agent` and upgrade reminders in dev/build
+    agentUpgrade: "security",
+  },
 };
 
 export default nextConfig;
