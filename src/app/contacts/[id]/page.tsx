@@ -1,13 +1,17 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { z } from "zod";
 import { BackLink } from "@/components/back-link";
 import { Container } from "@/components/container";
+import { ContactHistoryDialog } from "@/components/contact-history-dialog";
+import { ContactHistoryList } from "@/components/contact-history-list";
+import { buttonVariants } from "@/components/ui/button";
 import { DeleteContactButton } from "@/components/delete-contact-button";
 import { KeepInTouchSelect } from "@/components/keep-in-touch-select";
 import { NoteForm } from "@/components/note-form";
-import { getContact, listNotes } from "@/lib/contacts";
+import { getContact, listContactChanges, listNotes } from "@/lib/contacts";
 import { formatDateTime, pluralize } from "@/lib/format";
 
 export default function ContactPage({ params }: PageProps<"/contacts/[id]">) {
@@ -34,7 +38,7 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [contact, notes] = await Promise.all([getContact(id), listNotes(id)]);
+  const [contact, notes, changes] = await Promise.all([getContact(id), listNotes(id), listContactChanges(id)]);
   if (!contact) notFound();
 
   return (
@@ -61,7 +65,15 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
             <KeepInTouchSelect contactId={contact.id} initialValue={contact.keepInTouchFrequency} />
           </Field>
         </dl>
-        <DeleteContactButton contactId={contact.id} contactName={contact.name} />
+        <ContactHistoryDialog count={changes.length}>
+          <ContactHistoryList changes={changes} />
+        </ContactHistoryDialog>
+        <div className="flex flex-wrap gap-3">
+          <Link href={`/contacts/${contact.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            Редактировать
+          </Link>
+          <DeleteContactButton contactId={contact.id} contactName={contact.name} />
+        </div>
       </Container>
 
       {/* Notes sit on a sand band, like the "Знакомо?" block on the landing */}

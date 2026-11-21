@@ -9,58 +9,43 @@ import {
   deleteContacts,
   getContact,
   setKeepInTouchFrequency,
+  updateContact,
 } from "@/lib/contacts";
+import { contactFields } from "@/lib/contact-fields";
+import { parseContactForm, type ContactFormState } from "@/lib/contact-schema";
 import { keepInTouchFrequencies } from "@/lib/keep-in-touch";
-
-const optionalText = (max: number, message: string) =>
-  z
-    .string()
-    .trim()
-    .max(max, message)
-    .transform((value) => value || null);
-
-const contactSchema = z.object({
-  name: z.string().trim().min(1, "Введите имя").max(200, "Имя слишком длинное"),
-  howWeMet: optionalText(500, "Слишком длинный текст"),
-  phone: optionalText(50, "Слишком длинный номер"),
-  email: z
-    .string()
-    .trim()
-    .max(200, "Слишком длинная почта")
-    .refine((value) => value === "" || z.email().safeParse(value).success, "Неверный адрес почты")
-    .transform((value) => value || null),
-});
-
-type ContactField = keyof z.input<typeof contactSchema>;
-
-export type ContactFormState = {
-  errors?: Partial<Record<ContactField, string>>;
-  values?: Partial<Record<ContactField, string>>;
-};
 
 export async function createContactAction(
   _prev: ContactFormState,
   formData: FormData,
 ): Promise<ContactFormState> {
-  const values = {
-    name: String(formData.get("name") ?? ""),
-    howWeMet: String(formData.get("howWeMet") ?? ""),
-    phone: String(formData.get("phone") ?? ""),
-    email: String(formData.get("email") ?? ""),
-  };
-
-  const parsed = contactSchema.safeParse(values);
-  if (!parsed.success) {
-    const errors: ContactFormState["errors"] = {};
-    for (const issue of parsed.error.issues) {
-      const field = issue.path[0] as ContactField;
-      errors[field] ??= issue.message;
-    }
-    return { errors, values };
-  }
+  const parsed = parseContactForm(formData);
+  if ("state" in parsed) return parsed.state;
 
   const contact = await createContact(parsed.data);
   redirect(`/contacts/${contact.id}`);
+}
+
+export async function updateContactAction(
+  contactId: string,
+  _prev: ContactFormState,
+  formData: FormData,
+): Promise<ContactFormState> {
+  const parsed = parseContactForm(formData);
+  if ("state" in parsed) return parsed.state;
+
+  const result = z.uuid().safeParse(contactId).success ? await updateContact(contactId, parsed.data) : "not_found";
+  if (result === "not_found") {
+    // Keep what was typed: the form stays open
+    const values = Object.fromEntries(contactFields.map((field) => [field, String(formData.get(field) ?? "")]));
+    return { error: "Контакт не найден", values };
+  }
+
+  // The name and the phone are also shown on the home page
+  revalidatePath("/");
+  revalidatePath(`/contacts/${contactId}`);
+  // Replace, so the browser's back button doesn't lead to the form with the old values
+  redirect(`/contacts/${contactId}`, RedirectType.replace);
 }
 
 const noteSchema = z.object({
